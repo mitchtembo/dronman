@@ -27,8 +27,8 @@ export default function DronesPage() {
           return;
         }
 
-        const baseUrl = window.location.origin;
-        const response = await fetch(`${baseUrl}/api/drones`, {
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || window.location.origin;
+        const response = await fetch(`${apiBaseUrl}/api/drones`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },

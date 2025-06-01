@@ -44,7 +44,7 @@ export function getCurrentUser() {
   }
 
   const token = Cookies.get(TOKEN_KEY);
-  console.log('getCurrentUser: Token from cookie:', token ? 'Found' : 'Not Found');
+  console.log('getCurrentUser: Raw Token from cookie:', token); // Log the raw token
   if (!token) {
     return null;
   }
