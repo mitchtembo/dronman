@@ -2,7 +2,7 @@
 import mongoose from 'mongoose';
 
 // Try both possible environment variable names
-const MONGODB_URI = process.env.MONGODB_URI || process.env.NEXT_PUBLIC_MONGODB_URI || "mongodb+srv://mitchtembo:tjc1RitvPPYppBSS@dronesol.1lstepp.mongodb.net/solutions?retryWrites=true&w=majority"; // TEMPORARY: Fallback for debugging
+const MONGODB_URI = process.env.MONGODB_URI || process.env.NEXT_PUBLIC_MONGODB_URI 
 
 if (!MONGODB_URI) {
   console.error('Environment variables available:', Object.keys(process.env));
