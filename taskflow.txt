@@ -1,0 +1,142 @@
+# Overview
+The Drone Pilot Management System for Drone Solutions Zimbabwe is a comprehensive web-based application designed to streamline pilot management, certification tracking, flight logging, and regulatory compliance with the Civil Aviation Authority of Zimbabwe (CAAZ). The system aims to reduce manual paperwork by 80%, provide 100% certification tracking accuracy, enable real-time compliance monitoring, support 50+ concurrent users, maintain 99.9% uptime, and generate regulatory reports in under 30 seconds.
+
+# Core Features
+1.  **User Management & Authentication**:
+    *   **What it does**: Provides a multi-role authentication system (Administrators, Pilots, Regulatory Officers/Viewers) with secure login/logout, password reset, profile management, and role-based access control (RBAC).
+    *   **Why it's important**: Ensures secure access and appropriate permissions for different user types, critical for data integrity and regulatory compliance.
+    *   **How it works**: Session-based authentication. Users log in, their role determines access. Profiles can be updated.
+2.  **Pilot Management Dashboard**:
+    *   **What it does**: Offers a central hub for managing certified pilots, tracking certifications (with expiry alerts), monitoring pilot status (Active, Inactive, Suspended, Training), and displaying quick stats (Total pilots, active certifications, upcoming renewals). Includes document upload for certification proof.
+    *   **Why it's important**: Centralizes pilot data, automates certification tracking, and provides quick insights into pilot readiness and compliance.
+    *   **How it works**: Displays pilot directory, certification details with expiry dates, and status. Alerts are triggered automatically.
+3.  **Flight Logging System**:
+    *   **What it does**: Allows pilots to log flight details (date, time, duration, drone, mission type, location, weather, incidents/notes). Provides searchable/filterable flight history and automatic calculation of total flight hours. Supports export to PDF/Excel.
+    *   **Why it's important**: Essential for operational records, pilot performance tracking, and regulatory reporting.
+    *   **How it works**: Form-based data entry, data stored in JSON/localStorage, displayed in tables, aggregated for hours.
+4.  **Drone Fleet Management**:
+    *   **What it does**: Maintains a comprehensive inventory of all drones, including specifications, maintenance status, and real-time availability. Tracks service dates and requirements.
+    *   **Why it's important**: Ensures drones are well-maintained, available for missions, and compliant with operational standards.
+    *   **How it works**: Displays drone inventory in a table, tracks maintenance dates, updates status.
+5.  **Scheduling & Assignment System**:
+    *   **What it does**: Enables assigning pilots to drones for specific missions via a calendar interface. Features availability tracking, conflict detection, and notifications for assignments. Supports various mission types.
+    *   **Why it's important**: Optimizes resource allocation, prevents double-booking, and ensures missions are properly staffed and equipped.
+    *   **How it works**: Calendar view for scheduling, form for assignment, checks for conflicts.
+6.  **Compliance & Reporting**:
+    *   **What it does**: Provides a CAAZ Compliance Dashboard to track regulatory adherence. Generates automated compliance reports, maintains an audit trail of system activities, manages regulatory documents, and performs validation checks on flights.
+    *   **Why it's important**: Ensures adherence to national aviation regulations, simplifies audit processes, and reduces legal risks.
+    *   **How it works**: Aggregates data for compliance metrics, generates reports, stores documents.
+7.  **Notification System**:
+    *   **What it does**: Sends automated alerts for certification expiry, mission reminders, regulatory deadlines, and system announcements via email/SMS (optional for SMS).
+    *   **Why it's important**: Keeps users informed of critical events and deadlines, improving operational efficiency and compliance.
+    *   **How it works**: Triggers notifications based on predefined events and schedules.
+8.  **Analytics & Reporting**:
+    *   **What it does**: Provides visual dashboards with flight statistics (hours flown, missions completed, pilot performance), compliance metrics, usage analytics (drone utilization, pilot workload), and flexible custom reports.
+    *   **Why it's important**: Offers data-driven insights for operational optimization, performance evaluation, and strategic decision-making.
+    *   **How it works**: Uses Recharts for data visualization, allows filtering and date ranges for reports.
+
+# User Experience
+*   **User Personas**:
+    *   **Administrator**: Manages users, views all data, generates reports, configures system settings. Needs intuitive dashboards and robust management tools.
+    *   **Pilot**: Logs flights, views personal dashboard, checks assignments. Needs simple, efficient forms and clear personal overviews.
+    *   **Regulatory Officer/Viewer**: Monitors compliance, views audit reports, accesses regulatory documents. Needs clear, concise reports and easy access to compliance data.
+*   **Key User Flows**:
+    *   Login -> Dashboard -> Log New Flight
+    *   Login -> Dashboard -> View Upcoming Assignments
+    *   Admin Login -> Settings -> Manage Users
+    *   Pilot Login -> View Certifications -> Upload Proof
+    *   Admin/Reg Officer Login -> Compliance Dashboard -> Generate Report
+*   **UI/UX Considerations**:
+    *   **Exact Design Match**: Pixel-perfect implementation of provided UI screens.
+    *   **Color Scheme**: Blue (#007BFF) primary, clean white/gray backgrounds.
+    *   **Navigation**: Left sidebar (collapsible), top navigation bar with page title and user profile.
+    *   **Components**: Clean white cards with subtle shadows, rounded corners. Sortable data tables with status badges and action buttons. Line and bar charts matching designs. Multi-column forms with validation.
+    *   **Responsiveness**: Mobile-first approach, tables horizontally scrollable, cards stack vertically, forms adapt to single-column on mobile.
+
+# Technical Architecture
+*   **Framework**: Next.js 14+ with App Router (JavaScript only - NO TypeScript).
+*   **Styling**: Tailwind CSS with shadcn/ui components.
+*   **Charts**: Recharts library.
+*   **Icons**: Lucide React.
+*   **Data**: Mock JSON data or localStorage for demo.
+*   **Authentication**: Simple role-based session management.
+*   **Forms**: React Hook Form for handling and validation.
+*   **Calendar**: Custom calendar component or react-big-calendar for scheduling.
+*   **Folder Structure**:
+    ```
+    /app
+      /dashboard/page.js
+      /pilots/page.js
+      /flights/page.js
+      /flights/new/page.js
+      /drones/page.js
+      /compliance/page.js
+      /settings/page.js
+      /schedule/page.js
+      /api/
+        /pilots/route.js
+        /flights/route.js
+        /drones/route.js
+        /missions/route.js
+      layout.js
+      page.js
+    /components
+      /ui/ (Button.js, Badge.js, Modal.js, DataTable.js, StatCard.js)
+      /charts/ (LineChart.js, BarChart.js)
+      /forms/ (FlightLogForm.js, UserForm.js)
+      /layout/ (Sidebar.js, TopNav.js)
+    /lib (data.js, utils.js, auth.js)
+    /public (images/)
+    /styles (globals.css)
+    ```
+*   **Key Database Tables/Collections (Conceptual for JSON/localStorage)**: Users, Pilots, Drones, FlightLogs, Certifications, Missions, Notifications.
+*   **Integration Requirements**: Email service (mocked), SMS gateway (optional/mocked), Export capabilities (PDF, Excel, CSV - client-side), API endpoints (mocked).
+
+# Development Roadmap
+*   **Phase 1: Core Setup & Layout (Completed)**: Next.js project initialization, dependency installation, Tailwind/shadcn setup, basic folder structure, global layout (Sidebar, TopNav), mock data setup.
+*   **Phase 2: Shared Components (In Progress)**: StatCard, LineChart, BarChart, DataTable.
+*   **Phase 3: Page Implementation (Sequential)**:
+    1.  Pilot Dashboard (`/dashboard`) - (Initial structure with charts done)
+    2.  Drone Inventory (`/drones`) - (Done)
+    3.  Flight Logging Form (`/flights/new`) - (Form component done, page done, needs fixing)
+    4.  Settings Page (`/settings`)
+    5.  Regulatory Compliance Page (`/compliance`)
+    6.  Mission Scheduling Page (`/schedule`)
+    7.  Pilot Directory (`/pilots`)
+    8.  Flight History (`/flights`)
+    9.  Reports Page (`/reports`)
+*   **Phase 4: Core Functionality & Refinements**: Authentication & RBAC, CRUD operations for all entities, Form validation, Notification system, Analytics integration, Responsive design, Zimbabwe-specific context.
+*   **Phase 5: Deployment Preparation**: Cloud deployment readiness, environment configuration.
+
+# Logical Dependency Chain
+1.  **Core Setup & Layout**: Foundation for all other work.
+2.  **Shared UI Components**: Needed by multiple pages (StatCard, DataTable, Charts, Form elements).
+3.  **Authentication System**: Required for role-based access before implementing specific user flows.
+4.  **Data Management (Mock)**: Essential for populating UI components and testing CRUD.
+5.  **Pilot Dashboard**: Central overview, uses shared components.
+6.  **Drone Inventory**: Manages drone data, uses DataTable.
+7.  **Flight Logging System**: Core pilot functionality, uses form components.
+8.  **Scheduling & Assignment**: Depends on pilots and drones.
+9.  **User Management (Settings)**: Depends on core user/auth system.
+10. **Compliance & Reporting**: Aggregates data from other features.
+11. **Notifications**: Integrates with various features.
+12. **Analytics & Custom Reports**: Builds on collected data.
+
+# Risks and Mitigations
+*   **Technical Challenges**:
+    *   **Risk**: Persistent "Module not found" errors and Turbopack issues on the local environment.
+    *   **Mitigation**: Attempting to switch to Webpack (done), thorough manual environment cleanup, and if issues persist, seeking external IT/dev environment support. This is the current critical blocker.
+    *   **Risk**: Pixel-perfect UI matching with Tailwind/shadcn.
+    *   **Mitigation**: Iterative development with constant visual checks against mockups.
+    *   **Risk**: Complex form validation and state management.
+    *   **Mitigation**: Leveraging `react-hook-form` and clear state management patterns.
+*   **MVP Definition**:
+    *   **MVP**: Focus on core features: User Auth (basic), Pilot Dashboard, Flight Logging, Drone Inventory. These provide immediate value and a visible frontend.
+    *   **Future Enhancements**: Advanced scheduling, comprehensive reporting, real-time notifications, full API integrations, database migration.
+*   **Resource Constraints**:
+    *   **Mitigation**: Prioritize features based on MVP, utilize existing libraries (shadcn, Recharts, Lucide React) to accelerate development.
+
+# Appendix
+*   **Sample Data**: Provided in `lib/data.js` for Pilots, Drones, Missions, Flight Logs.
+*   **Zimbabwe-Specific Requirements**: Locations (Harare, Victoria Falls, Bulawayo, Hwange), CAAZ references, GMT+02:00 timezone.
+*   **Performance Requirements**: Fast page loading, smooth animations, efficient data rendering, image optimization, minimal bundle size.

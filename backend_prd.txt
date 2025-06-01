@@ -1,0 +1,126 @@
+# Backend Product Requirements Document: Drone Pilot Management System
+
+## 1. Introduction
+This document outlines the backend requirements for the Drone Pilot Management System, focusing on data management, API functionalities, and system interactions necessary to support the frontend application.
+
+## 2. Goals
+-   To provide robust and secure API endpoints for managing all core entities (Pilots, Drones, Flight Logs, Users, Missions, Notifications).
+-   To ensure data integrity and consistency for all managed entities.
+-   To support authentication and authorization mechanisms for secure access.
+-   To enable efficient data retrieval and manipulation for reporting and operational needs.
+
+## 3. Key Features (API Functionalities)
+
+### 3.1. User Management
+-   **Authentication:** API for user login and session management.
+-   **User CRUD:** Endpoints to create, retrieve, update, and delete user accounts.
+-   **Role Management:** Support for different user roles (Administrator, Pilot, Viewer) and role-based access control.
+
+### 3.2. Pilot Management
+-   **Pilot CRUD:** API endpoints for creating, retrieving (all, by ID), updating, and deleting pilot records.
+-   **Certification Management:** Ability to manage pilot certifications (add, update expiry, retrieve status).
+
+### 3.3. Drone Management
+-   **Drone CRUD:** API endpoints for creating, retrieving (all, by ID), updating, and deleting drone records.
+-   **Maintenance Tracking:** Support for tracking last maintenance and next service dates.
+
+### 3.4. Flight Log Management
+-   **Flight Log CRUD:** API endpoints for creating, retrieving (all, by ID), updating, and deleting flight log entries.
+-   **Flight Hour Calculation:** Backend logic to support aggregation of flight hours.
+
+### 3.5. Mission Management
+-   **Mission CRUD:** API endpoints for creating, retrieving (all, by ID), updating, and deleting mission records.
+-   **Assignment Tracking:** Link missions to pilots and drones.
+
+### 3.6. Notification Management
+-   **Notification CRUD:** API endpoints for creating, retrieving (all, by user), updating (read status), and deleting notifications.
+-   **Automated Notifications:** Support for generating notifications based on events (e.g., expiring certifications).
+
+## 4. Data Model (High-Level Entities)
+
+### 4.1. User
+-   `id`: Unique identifier
+-   `username`: User login name
+-   `password`: Hashed password
+-   `role`: User role (e.g., 'Administrator', 'Pilot', 'Viewer')
+-   `pilotId`: (Optional) Link to associated pilot record
+
+### 4.2. Pilot
+-   `id`: Unique identifier (e.g., P001)
+-   `userId`: (Optional) Link to associated user account
+-   `name`: Pilot's full name
+-   `email`: Pilot's email address
+-   `contact`: Pilot's contact information
+-   `status`: Current status (e.g., 'Active', 'Inactive', 'Suspended')
+-   `certifications`: Array of certification objects
+    -   `type`: Type of certification (e.g., 'RPL', 'Night Flight')
+    -   `issued`: Date issued
+    -   `expires`: Date of expiry
+    -   `status`: Certification status (e.g., 'Valid', 'Expiring Soon', 'Expired')
+
+### 4.3. Drone
+-   `id`: Unique identifier (e.g., D001)
+-   `model`: Drone model
+-   `serial`: Serial number
+-   `make`: Manufacturer
+-   `purchaseDate`: Date of purchase
+-   `status`: Current status (e.g., 'Available', 'In Maintenance')
+-   `lastMaintenance`: Date of last maintenance
+-   `nextServiceDate`: Date of next scheduled service
+
+### 4.4. Mission
+-   `id`: Unique identifier (e.g., M001)
+-   `name`: Mission name
+-   `client`: Client name
+-   `location`: Mission location
+-   `pilotId`: Assigned pilot's ID
+-   `droneId`: Assigned drone's ID
+-   `date`: Mission date
+-   `status`: Mission status (e.g., 'Scheduled', 'Confirmed', 'Completed')
+
+### 4.5. Flight Log
+-   `id`: Unique identifier (e.g., FL001)
+-   `pilotId`: Pilot who performed the flight
+-   `droneId`: Drone used for the flight
+-   `date`: Date of the flight
+-   `duration`: Flight duration in minutes
+-   `location`: Flight location
+-   `missionType`: Type of mission (e.g., 'Training', 'Commercial')
+-   `weather`: Weather conditions during flight
+-   `incidents`: Any incidents during flight
+-   `notes`: Additional notes
+
+### 4.6. Notification
+-   `id`: Unique identifier
+-   `userId`: User to whom the notification is addressed
+-   `type`: Notification type (e.g., 'alert', 'info')
+-   `message`: Notification message
+-   `date`: Date of notification
+-   `read`: Boolean indicating if notification has been read
+
+## 5. API Specifications (High-Level)
+-   **Base URL:** `/api/`
+-   **Endpoints:**
+    -   `/api/users`
+    -   `/api/pilots`
+    -   `/api/drones`
+    -   `/api/missions`
+    -   `/api/flights`
+    -   `/api/notifications`
+-   **Methods:** GET, POST, PUT, DELETE for each entity (where applicable).
+-   **Request/Response Formats:** JSON.
+-   **Error Handling:** Standard HTTP status codes (e.g., 200 OK, 201 Created, 204 No Content, 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 500 Internal Server Error).
+
+## 6. Authentication and Authorization
+-   **Authentication:** Token-based authentication (e.g., JWT) for API access.
+-   **Authorization:** Role-based access control (RBAC) to restrict access to certain endpoints or data based on user roles.
+
+## 7. Technology Stack
+-   **Backend Framework:** Next.js API Routes
+-   **Data Storage:** MongoDB (chosen database)
+-   **ORM/ODM:** Mongoose (recommended for schema definition and interaction)
+
+## 8. Future Considerations
+-   More advanced filtering, sorting, and pagination for API responses.
+-   Real-time notifications using WebSockets.
+-   Comprehensive input validation for all API requests.
