@@ -14,6 +14,7 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { getCurrentUser } from '@/lib/auth'; // Import getCurrentUser
+import { pilots as mockPilots, drones as mockDrones } from '@/lib/data';
 
 export default function SchedulePage() {
   const [missions, setMissions] = useState([]);
@@ -196,7 +197,7 @@ export default function SchedulePage() {
               className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select Pilot</option>
-              {mockPilots.map(pilot => (
+              {pilots.map(pilot => (
                 <option key={pilot.id} value={pilot.id}>{pilot.name}</option>
               ))}
             </select>
@@ -207,7 +208,7 @@ export default function SchedulePage() {
               className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select Drone</option>
-              {mockDrones.map(drone => (
+              {drones.map(drone => (
                 <option key={drone.id} value={drone.id}>{drone.model} ({drone.serial})</option>
               ))}
             </select>
