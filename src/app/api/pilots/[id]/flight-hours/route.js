@@ -1,44 +1,31 @@
 // src/app/api/pilots/[id]/flight-hours/route.js
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/dbConnect';
-import FlightLog from '@/models/FlightLog';
-import mongoose from 'mongoose';
 import { withAuth } from '@/lib/authMiddleware';
-import { successResponse, errorResponse, handleApiError } from '@/lib/apiResponse'; // Import API response helpers
+import { successResponse, errorResponse, handleApiError } from '@/lib/apiResponse';
+import { db } from '@/lib/firebaseAdmin'; // Import Firestore db
 
 const handleGetPilotFlightHours = async (request, { params }) => {
-  await dbConnect();
   const { id } = params; // pilotId from the URL
+  const requestingUser = request.user; // User info attached by withAuth
 
   try {
     // RBAC: Admin can view any pilot's flight hours, Pilot can view their own
-    // The `withAuth` middleware already ensures authentication.
-    // Additional check for pilot's own data if not admin:
-    // const currentUser = request.user; // User info attached by withAuth
-    // if (currentUser.role !== 'Administrator' && currentUser.pilotId !== id) {
-    //   return errorResponse('Forbidden: You can only view your own flight hours', 403);
-    // }
-
-    const result = await FlightLog.aggregate([
-      {
-        $match: {
-          pilotId: id, // Match by custom pilotId string
-        },
-      },
-      {
-        $group: {
-          _id: '$pilotId',
-          totalMinutes: { $sum: '$duration' },
-        },
-      },
-    ]);
-
-    if (result.length > 0) {
-      const totalHours = parseFloat((result[0].totalMinutes / 60).toFixed(1));
-      return successResponse({ pilotId: id, totalHours });
-    } else {
-      return successResponse({ pilotId: id, totalHours: 0 });
+    if (requestingUser.role !== 'Administrator' && requestingUser.pilotId !== id) {
+      return errorResponse('Forbidden: You can only view your own flight hours', 403);
     }
+
+    const flightLogsSnapshot = await db.collection('flightlogs')
+      .where('pilotId', '==', id)
+      .get();
+
+    let totalMinutes = 0;
+    flightLogsSnapshot.docs.forEach(doc => {
+      totalMinutes += doc.data().duration || 0;
+    });
+
+    const totalHours = parseFloat((totalMinutes / 60).toFixed(1));
+    return successResponse({ pilotId: id, totalHours });
+
   } catch (error) {
     return handleApiError(error);
   }

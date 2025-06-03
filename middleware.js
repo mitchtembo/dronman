@@ -9,8 +9,16 @@ export function middleware(request) {
   // Clone the request to modify its headers
   const requestHeaders = new Headers(request.headers);
 
-  // Read the JWT token from the cookie
-  const token = request.cookies.get('jwt_token')?.value;
+  // Read the JWT token from the cookie (for browser-based authentication)
+  let token = request.cookies.get('jwt_token')?.value;
+
+  // If no token in cookie, check Authorization header (for API clients like Postman)
+  if (!token) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7); // Extract token after "Bearer "
+    }
+  }
 
   if (token) {
     try {
@@ -18,13 +26,15 @@ export function middleware(request) {
       currentUser = decoded;
 
       // Attach user info to the *request headers* for API routes
+      // These headers are then read by withAuth middleware
       requestHeaders.set('x-user-id', currentUser.id);
       requestHeaders.set('x-user-role', currentUser.role);
       if (currentUser.pilotId) {
         requestHeaders.set('x-user-pilot-id', currentUser.pilotId);
       }
 
-      // Create a new request with modified headers
+      // Create a new response with modified request headers
+      // This ensures the modified headers are passed down the chain
       response = NextResponse.next({
         request: {
           headers: requestHeaders,
@@ -33,10 +43,14 @@ export function middleware(request) {
 
     } catch (e) {
       console.error("JWT verification failed in middleware:", e);
-      // If token is invalid or expired, clear the cookie and redirect to login
-      response = NextResponse.redirect(new URL('/login', request.url));
-      response.cookies.delete('jwt_token');
-      return response;
+      // For API routes, return a 401. For page routes, redirect to login.
+      if (pathname.startsWith('/api')) {
+        return new NextResponse('Authentication required', { status: 401 });
+      } else {
+        response = NextResponse.redirect(new URL('/login', request.url));
+        response.cookies.delete('jwt_token');
+        return response;
+      }
     }
   }
 

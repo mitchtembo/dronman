@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation'; // Import useRouter
 import { PlusCircle, Upload, Search } from 'lucide-react';
 import DataTable from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/button';
@@ -16,27 +17,39 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import PilotTableSkeleton from '@/components/ui/PilotTableSkeleton';
-import { getCurrentUser } from '@/lib/auth'; // Import getCurrentUser
+import { getCurrentUser, ROLES } from '@/lib/auth'; // Import getCurrentUser and ROLES
+import Cookies from 'js-cookie'; // Import Cookies
 
 export default function PilotsPage() {
+  const router = useRouter(); // Initialize useRouter
   const [pilots, setPilots] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPilot, setSelectedPilot] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentUserRole, setCurrentUserRole] = useState(null); // State for user role
 
   useEffect(() => {
     const fetchPilots = async () => {
       try {
         setLoading(true);
         setError(null);
-        const currentUser = getCurrentUser(); // Get current user to access token
-        const token = currentUser?.token; // Assuming token is part of the user object
+        const currentUser = await getCurrentUser(); // Await getCurrentUser
+        setCurrentUserRole(currentUser?.role); // Set the user role
 
-        if (!token) {
+        const token = Cookies.get('firebase_id_token'); // Get token from cookie
+
+        if (!currentUser || !token) {
           setError("Authentication required. Please log in.");
           setLoading(false);
+          router.push('/login'); // Redirect to login if not authenticated
+          return;
+        }
+
+        // Role-based access control for the page
+        if (currentUser.role !== ROLES.ADMIN) {
+          router.push('/access-denied'); // Redirect if not an Admin
           return;
         }
 

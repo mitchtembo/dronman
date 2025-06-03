@@ -1,52 +1,79 @@
 // src/app/api/auth/login/route.js
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import dbConnect from '@/lib/dbConnect';
-import User from '@/models/User';
-import { successResponse, errorResponse, handleApiError } from '@/lib/apiResponse'; // Import API response helpers
+import { auth, db } from '@/lib/firebaseAdmin';
+import { successResponse, errorResponse, handleApiError } from '@/lib/apiResponse';
 
 export async function POST(request) {
-  await dbConnect();
-
   try {
-    const { username, password } = await request.json();
+    const { idToken } = await request.json();
 
-    // Find user by username
-    const user = await User.findOne({ username });
-    if (!user) {
-      return errorResponse('Invalid credentials', 401);
+    if (!idToken || typeof idToken !== 'string') {
+      return errorResponse('Firebase ID token is required and must be a string.', 400);
     }
 
-    // Compare provided password with hashed password in DB
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return errorResponse('Invalid credentials', 401);
+    // Verify the Firebase ID token
+    const decodedToken = await auth.verifyIdToken(idToken);
+    const uid = decodedToken.uid;
+
+    // Fetch user data from Firestore
+    const userRef = db.collection('users').doc(uid);
+    const userDoc = await userRef.get();
+
+    let user;
+
+    if (!userDoc.exists) {
+      // If user doesn't exist in Firestore, create a basic entry
+      // and automatically create a linked pilot profile if the role is 'Pilot'.
+      const defaultRole = 'Pilot'; // Default role for new sign-ups
+
+      let pilotId = null;
+      let pilotName = null;
+
+      // Automatically create a pilot profile if the default role is Pilot
+      if (defaultRole === 'Pilot') {
+        // Derive a basic name from the email
+        pilotName = decodedToken.email ? decodedToken.email.split('@')[0].replace('.', ' ').split(' ').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ') : 'New Pilot';
+
+        const newPilotData = {
+          userId: uid,
+          name: pilotName,
+          email: decodedToken.email,
+          contact: null,
+          status: 'Active',
+          certifications: [],
+        };
+        const pilotDocRef = await db.collection('pilots').add(newPilotData);
+        pilotId = pilotDocRef.id;
+      }
+
+      user = {
+        uid: uid,
+        email: decodedToken.email,
+        role: defaultRole,
+        pilotId: pilotId, // Link to the newly created pilot profile
+      };
+      await userRef.set(user);
+    } else {
+      user = userDoc.data();
     }
 
-    // Generate JWT
-    const payload = {
-      id: user._id,
-      username: user.username,
-      role: user.role,
-      pilotId: user.pilotId, // Include pilotId if available
-    };
-
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: '1h', // Token expires in 1 hour
-    });
-
-    // Return token (and user info, excluding password)
+    // Return user information
     return successResponse({
-      token,
       user: {
-        id: user._id,
-        username: user.username,
+        uid: user.uid,
+        email: user.email,
         role: user.role,
         pilotId: user.pilotId,
       },
     });
   } catch (error) {
+    // Handle Firebase authentication errors
+    if (error.code === 'auth/id-token-expired') {
+      return errorResponse('Authentication token expired. Please log in again.', 401);
+    }
+    if (error.code === 'auth/invalid-id-token') {
+      return errorResponse('Invalid authentication token.', 401);
+    }
     return handleApiError(error);
   }
 }

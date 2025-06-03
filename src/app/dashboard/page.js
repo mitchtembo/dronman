@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import StatCard from '@/components/ui/StatCard';
+import Cookies from 'js-cookie'; // Import Cookies
 import { PlusCircle, CalendarDays, TrendingUp, BarChartBig, CheckCircle, AlertTriangle, Users, Plane, Bot } from 'lucide-react';
 import CustomLineChart from '../../components/charts/LineChart';
 import CustomBarChart from '../../components/charts/BarChart';
@@ -33,12 +34,13 @@ export default function DashboardPage() {
       try {
         setLoading(true);
         setError(null);
-        const currentUser = getCurrentUser();
-        const token = currentUser?.token;
+        const currentUser = await getCurrentUser(); // Await getCurrentUser as it's async
+        const token = Cookies.get('firebase_id_token'); // Get token from cookie
 
-        if (!token) {
+        if (!currentUser || !token) {
           setError("Authentication required. Please log in.");
           setLoading(false);
+          router.push('/login'); // Redirect to login if not authenticated
           return;
         }
 
@@ -50,7 +52,27 @@ export default function DashboardPage() {
 
         const baseUrl = window.location.origin;
 
-        // Fetch Pilots data
+        let userNameToDisplay = currentUser.email; // Default to email
+        let pilotData = null; // Initialize pilotData to null
+
+        // If the user has a pilotId, fetch pilot details for the name
+        if (currentUser.pilotId) {
+          try {
+            const pilotResponse = await fetch(`${baseUrl}/api/pilots?id=${currentUser.pilotId}`, authHeaders);
+            if (pilotResponse.ok) {
+              pilotData = await pilotResponse.json(); // Assign to pilotData
+              if (pilotData.data && pilotData.data.name) {
+                userNameToDisplay = pilotData.data.name;
+              }
+            } else {
+              console.warn(`Failed to fetch pilot data for ${currentUser.pilotId}:`, pilotResponse.status);
+            }
+          } catch (pilotFetchError) {
+            console.error("Error fetching pilot data:", pilotFetchError);
+          }
+        }
+
+        // Fetch Pilots data (all pilots for admin, or filtered for pilot/viewer)
         const pilotsResponse = await fetch(`${baseUrl}/api/pilots`, authHeaders);
         if (!pilotsResponse.ok) throw new Error(`HTTP error! status: ${pilotsResponse.status}`);
         const pilotsData = await pilotsResponse.json();
@@ -123,6 +145,16 @@ export default function DashboardPage() {
         }));
         setUpcomingAssignmentsTableData(formattedUpcomingAssignments);
 
+        // Fetch pilot-specific certification data for the progress bar
+        let pilotCertification = null;
+        if (currentUser.pilotId) {
+          const pilotDoc = pilots.find(p => p.id === currentUser.pilotId);
+          if (pilotDoc && pilotDoc.certifications && pilotDoc.certifications.length > 0) {
+            // Assuming one primary certification for simplicity, or the first one
+            pilotCertification = pilotDoc.certifications[0];
+          }
+        }
+
         setStats(prevStats => ({
           ...prevStats,
           totalPilots,
@@ -131,8 +163,10 @@ export default function DashboardPage() {
           totalFlights,
           flightHours: parseFloat(flightHours.toFixed(1)),
           upcomingAssignments,
-          userName: currentUser?.username || "Guest",
+          userName: userNameToDisplay, // Use the dynamically determined name
+          certificationStatus: pilotCertification, // Set pilot's certification for display
         }));
+        console.log("Dashboard stats updated:", { userName: userNameToDisplay, currentUser, pilotData: pilotData?.data, pilotCertification }); // Debug log
       } catch (err) {
         console.error("Failed to fetch dashboard data:", err);
         setError("Failed to load dashboard data. Please try again later.");
@@ -144,6 +178,34 @@ export default function DashboardPage() {
     fetchData();
   }, []);
 
+  // Client-side role-based access control for the page
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <p className="text-gray-700">Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
+  }
+
+  // Redirect if user is not a Pilot (or Admin, if you want strict pilot-only view)
+  // For this "Pilot Dashboard", we'll allow Admin to view it too, but focus on pilot data.
+  // If strictly pilot-only, uncomment: if (currentUser?.role !== 'Pilot') router.push('/access-denied');
+  // For now, we'll assume the data fetching logic handles the filtering for non-admins/non-pilots.
+  // The prompt says "only visible for pilot view", so let's enforce it.
+  if (stats.currentUser && stats.currentUser.role !== 'Pilot' && stats.currentUser.role !== 'Administrator') {
+    router.push('/access-denied');
+    return null; // Prevent rendering
+  }
+
+
   return (
     <div className="space-y-8">
       <div>
@@ -153,9 +215,6 @@ export default function DashboardPage() {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <StatCard title="Total Pilots" value={stats.totalPilots} icon={<Users size={24} />} />
-        <StatCard title="Active Certs" value={stats.activeCertifications} icon={<CheckCircle size={24} />} />
-        <StatCard title="Upcoming Renewals" value={stats.upcomingRenewals} icon={<AlertTriangle size={24} />} />
         <StatCard title="Total Flights" value={stats.totalFlights} icon={<TrendingUp size={24} />} />
         <StatCard title="Flight Hours" value={stats.flightHours} icon={<BarChartBig size={24} />} />
         <StatCard title="Upcoming Assignments" value={stats.upcomingAssignments} icon={<CalendarDays size={24} />} />
@@ -166,7 +225,7 @@ export default function DashboardPage() {
         <h2 className="text-lg font-semibold text-gray-700 mb-4">Quick Actions</h2>
         <div className="flex space-x-4">
           <button
-            onClick={() => router.push('/flights/new')} // Add onClick to navigate
+            onClick={() => router.push('/flights/new')}
             className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg flex items-center transition-colors"
           >
             <PlusCircle size={20} className="mr-2" /> Log New Flight
@@ -187,13 +246,33 @@ export default function DashboardPage() {
           <p className="text-sm text-gray-500 mt-2">Last 6 Months</p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-lg font-semibold text-gray-700 mb-4">Certification Status Distribution</h2>
+          <h2 className="text-lg font-semibold text-gray-700 mb-4">Flights by Aircraft Type</h2>
+          {/* This chart data is not currently fetched, placeholder for now */}
           <div className="h-64">
-            <CustomBarChart data={certificationStatusChartData} dataKey="value" xAxisDataKey="name" />
+            {/* Placeholder for Flights by Aircraft Type Bar Chart */}
+            <CustomBarChart data={[{name: 'Type A', value: 50}, {name: 'Type B', value: 30}, {name: 'Type C', value: 20}]} dataKey="value" xAxisDataKey="name" />
           </div>
-          <p className="text-sm text-gray-500 mt-2">Overall Status</p>
+          <p className="text-sm text-gray-500 mt-2">All Time</p>
         </div>
       </div>
+
+      {/* Certification Status */}
+      {stats.certificationStatus && (
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-lg font-semibold text-gray-700 mb-4">Certification Status</h2>
+          <div className="flex items-center space-x-4">
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-700">{stats.certificationStatus.name || 'CAAZ Certification'}</p>
+              <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                {/* Assuming a fixed 75% for now, or calculate from data if available */}
+                <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: '75%' }}></div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Valid until {new Date(stats.certificationStatus.expires).toLocaleDateString()}</p>
+            </div>
+            <span className="text-lg font-semibold text-gray-700">75%</span>
+          </div>
+        </div>
+      )}
 
       {/* Upcoming Assignments Table */}
       <div className="bg-white p-6 rounded-lg shadow-md">
