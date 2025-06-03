@@ -9,19 +9,24 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function LoginPage() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState(''); // Changed from username to email
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const router = useRouter();
 
-  const handleSubmit = async (e) => { // Make handleSubmit async
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    const user = await login(username, password); // Await the login function
-    if (user) {
-      router.push('/dashboard'); // Redirect to dashboard on successful login
-    } else {
-      setError('Invalid username or password.');
+    try {
+      const user = await login(email, password); // Pass email and password
+      if (user) {
+        router.push('/dashboard'); // Redirect to dashboard on successful login
+      } else {
+        // This else block might not be reached if login throws an error
+        setError('Login failed. Please check your credentials.');
+      }
+    } catch (err) {
+      setError(err.message || 'An unexpected error occurred during login.');
     }
   };
 
@@ -37,14 +42,14 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="email">Email</Label> {/* Changed from username to email */}
               <Input
-                id="username"
-                type="text"
-                placeholder="admin or pilot1 or viewer1"
+                id="email"
+                type="email" // Changed type to email
+                placeholder="mt@gmail.com" // Updated placeholder
                 required
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div className="grid gap-2">

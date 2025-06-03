@@ -1,9 +1,9 @@
 // src/lib/authMiddleware.js
 import { NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
+import { auth, db } from '@/lib/firebaseAdmin';
 
 /**
- * A higher-order function to protect API routes with JWT authentication and RBAC.
+ * A higher-order function to protect API routes with Firebase authentication and RBAC.
  *
  * @param {function} handler - The original API route handler (e.g., GET, POST, PUT, DELETE).
  * @param {Array<string>} allowedRoles - An array of roles that are allowed to access this route.
@@ -11,30 +11,46 @@ import jwt from 'jsonwebtoken';
  */
 export const withAuth = (handler, allowedRoles = []) => {
   return async (request, context) => {
-    // The middleware.js already handles JWT verification and attaches user info
-    // to the request headers. We can retrieve it from there.
-    const userId = request.headers.get('x-user-id');
-    const userRole = request.headers.get('x-user-role');
-    const userPilotId = request.headers.get('x-user-pilot-id');
+    const authHeader = request.headers.get('authorization');
 
-    if (!userId || !userRole) {
-      // This case should ideally be caught by middleware.js redirecting to login,
-      // but as a fallback for API routes, return unauthorized.
-      return new NextResponse('Authentication required', { status: 401 });
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized: No token provided' }, { status: 401 });
     }
 
-    // Reconstruct user object for the handler
-    request.user = {
-      id: userId,
-      role: userRole,
-      pilotId: userPilotId || null,
-    };
+    const idToken = authHeader.split('Bearer ')[1];
 
-    // Check RBAC
-    if (allowedRoles.length > 0 && !allowedRoles.includes(request.user.role)) {
-      return new NextResponse('Forbidden: You do not have the necessary permissions', { status: 403 });
+    try {
+      const decodedToken = await auth.verifyIdToken(idToken);
+      const uid = decodedToken.uid;
+
+      const userDoc = await db.collection('users').doc(uid).get();
+
+      if (!userDoc.exists) {
+        return NextResponse.json({ error: 'Forbidden: User not found in database' }, { status: 403 });
+      }
+
+      // Attach user information to the request object
+      request.user = {
+        uid: uid,
+        email: decodedToken.email,
+        ...userDoc.data(), // Includes role and pilotId from Firestore
+      };
+
+      // Check RBAC
+      if (allowedRoles.length > 0 && !allowedRoles.includes(request.user.role)) {
+        return NextResponse.json({ error: 'Forbidden: You do not have the necessary permissions' }, { status: 403 });
+      }
+
+      return handler(request, context);
+    } catch (error) {
+      console.error('Auth middleware error:', error);
+      if (error.code === 'auth/id-token-expired') {
+        return NextResponse.json({ error: 'Unauthorized: Authentication token expired. Please log in again.' }, { status: 401 });
+      }
+      if (error.code === 'auth/invalid-id-token') {
+        return NextResponse.json({ error: 'Unauthorized: Invalid authentication token.' }, { status: 401 });
+      }
+      return NextResponse.json({ error: 'Unauthorized: Authentication failed.' }, { status: 401 });
     }
-
-    return handler(request, context);
   };
 };

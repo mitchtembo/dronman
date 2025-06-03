@@ -1,0 +1,93 @@
+{
+  "meta": {
+    "generatedAt": "2025-06-02T14:01:06.825Z",
+    "tasksAnalyzed": 10,
+    "totalTasks": 10,
+    "analysisCount": 10,
+    "thresholdScore": 5,
+    "projectName": "Taskmaster",
+    "usedResearch": false
+  },
+  "complexityAnalysis": [
+    {
+      "taskId": 1,
+      "taskTitle": "Firebase Project Setup and Admin SDK Integration",
+      "complexityScore": 4,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Expand the task 'Firebase Project Setup and Admin SDK Integration' into detailed subtasks covering Firebase console project creation, service enablement, service account key generation, environment variable configuration, Admin SDK package installation, utility file creation with initialization logic, and verification steps.",
+      "reasoning": "Involves multiple distinct configuration and coding steps, from console setup to SDK initialization and verification. Foundational but relatively straightforward if familiar with Firebase."
+    },
+    {
+      "taskId": 2,
+      "taskTitle": "Remove MongoDB Dependencies and Models",
+      "complexityScore": 3,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Expand the task 'Remove MongoDB Dependencies and Models' into subtasks for identifying and deleting model files, uninstalling MongoDB-related NPM packages, removing database connection logic, globally searching for and removing all MongoDB code usages and imports, and cleaning up related environment variables.",
+      "reasoning": "Primarily a search-and-delete operation. Low complexity but requires thoroughness to ensure complete removal and avoid breaking the application."
+    },
+    {
+      "taskId": 3,
+      "taskTitle": "Implement Firebase Authentication for User Login API",
+      "complexityScore": 5,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Expand the task 'Implement Firebase Authentication for User Login API' into subtasks for defining the API route structure, implementing ID token reception, verifying the token using Firebase Admin SDK, handling user profile checks or creation in Firestore, defining success/error responses, and managing application sessions if needed.",
+      "reasoning": "Involves API endpoint implementation, Firebase Admin SDK usage for authentication, and Firestore interaction. Requires careful handling of the authentication flow and user data persistence."
+    },
+    {
+      "taskId": 4,
+      "taskTitle": "Define Firestore Data Models and Basic `users` Security Rules",
+      "complexityScore": 6,
+      "recommendedSubtasks": 4,
+      "expansionPrompt": "Expand the task 'Define Firestore Data Models and Basic `users` Security Rules' into subtasks for documenting all specified Firestore collection schemas, implementing initial Firestore Security Rules for the `users` collection (self-read, admin-write, self-create on signup), deploying these rules, and testing their basic functionality.",
+      "reasoning": "Combines conceptual data modeling with the technical implementation and deployment of Firestore Security Rules, which have their own syntax and testing considerations."
+    },
+    {
+      "taskId": 5,
+      "taskTitle": "Update Authentication Middleware for Firebase Tokens and Roles",
+      "complexityScore": 7,
+      "recommendedSubtasks": 6,
+      "expansionPrompt": "Expand the task 'Update Authentication Middleware for Firebase Tokens and Roles' into subtasks for designing the middleware structure, implementing token extraction from headers, ID token verification with Firebase Admin SDK, fetching user roles and additional data from Firestore, attaching a comprehensive user object to requests, and robust error handling for various authentication failures.",
+      "reasoning": "Creating robust authentication middleware is critical and involves several steps: token handling, Firebase SDK interaction, database lookups for roles, and careful error management."
+    },
+    {
+      "taskId": 6,
+      "taskTitle": "Refactor `users` and `pilots` API Routes for Firestore",
+      "complexityScore": 8,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Expand the task 'Refactor `users` and `pilots` API Routes for Firestore' into subtasks covering: 1. Implementing all CRUD API routes for the `users` collection using Firestore, including Firebase Auth user creation/deletion and role checks. 2. Implementing all CRUD API routes for the `pilots` collection using Firestore, including linking to `users` documents and role checks. 3. Ensuring data integrity for `users.pilotId` linkage. 4. Integrating the `withAuth` middleware for all routes. 5. Writing unit/integration tests.",
+      "reasoning": "Involves rewriting multiple API endpoints for two core data models, including all CRUD operations, Firebase Auth user management, data linking logic, and role-based access control within handlers."
+    },
+    {
+      "taskId": 7,
+      "taskTitle": "Refactor `drones`, `missions`, `flightlogs`, `notifications` API Routes",
+      "complexityScore": 8,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Expand the task 'Refactor `drones`, `missions`, `flightlogs`, `notifications` API Routes' into subtasks for implementing Firestore-backed CRUD operations with authentication and role checks for each collection: `drones`, `missions`, `flightlogs` (at `/api/flights`), and `notifications` (including user-specific 'read' status updates). Ensure `withAuth` middleware is used for all routes and write tests.",
+      "reasoning": "A substantial task involving the refactoring of CRUD operations for four distinct collections. Each requires Firestore integration, authentication, and role-based access control, similar in complexity per collection to task 6."
+    },
+    {
+      "taskId": 8,
+      "taskTitle": "Implement Granular Firestore Security Rules for RBAC",
+      "complexityScore": 9,
+      "recommendedSubtasks": 8,
+      "expansionPrompt": "Expand the task 'Implement Granular Firestore Security Rules for RBAC' into subtasks for: 1. Defining helper functions (isAuthenticated, getUserRole, etc.). 2. Implementing rules for `users`. 3. Implementing rules for `pilots`. 4. Implementing rules for `drones`. 5. Implementing rules for `missions`. 6. Implementing rules for `flightlogs`. 7. Implementing rules for `notifications` (including specific field updates like 'read'). 8. Thoroughly testing all rules using the Firebase Emulator Suite and rules unit testing.",
+      "reasoning": "Highly complex as it involves writing intricate, declarative security rules for all data collections to enforce precise role-based access. Testing these rules thoroughly is critical and non-trivial."
+    },
+    {
+      "taskId": 9,
+      "taskTitle": "Implement Pilot-Specific Data Filtering and Specialized API Routes",
+      "complexityScore": 7,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Expand the task 'Implement Pilot-Specific Data Filtering and Specialized API Routes' into subtasks for: 1. Adding server-side filtering to list APIs (missions, flightlogs, notifications) to restrict Pilot data visibility. 2. Implementing the `GET /api/pilots/[id]/flight-hours` API. 3. Implementing the `GET /api/drones/[id]/flight-hours` API. 4. Implementing the `POST /api/notifications/check-expiring-certs` API (Admin only). 5. Ensuring appropriate authentication, authorization, and testing for these new/updated routes.",
+      "reasoning": "Requires implementing conditional data filtering in existing APIs and creating new specialized API endpoints with business logic (calculations, data aggregation, notification generation), plus ensuring security."
+    },
+    {
+      "taskId": 10,
+      "taskTitle": "Integrate Swagger/OpenAPI Documentation",
+      "complexityScore": 5,
+      "recommendedSubtasks": 5,
+      "expansionPrompt": "Expand the task 'Integrate Swagger/OpenAPI Documentation' into subtasks for: 1. Selecting and installing a suitable Swagger/OpenAPI library. 2. Configuring OpenAPI specification basics (info, servers, securitySchemes). 3. Annotating all API routes (users, pilots, drones, missions, flightlogs, notifications, specialized routes) with JSDoc, including request/response schemas. 4. Defining reusable component schemas for data models. 5. Setting up and testing the Swagger UI page.",
+      "reasoning": "Involves library setup, configuration, and extensive JSDoc annotation for all API endpoints. While not deeply complex technically, it's detail-oriented, can be tedious, and requires consistency for comprehensive documentation."
+    }
+  ]
+}

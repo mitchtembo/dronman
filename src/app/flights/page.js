@@ -7,8 +7,9 @@ import DataTable from '@/components/ui/DataTable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import FlightTableSkeleton from '@/components/ui/FlightTableSkeleton';
+import Cookies from 'js-cookie'; // Import Cookies
 import { calculateTotalFlightHours } from '@/lib/flightCalculations';
-import { getCurrentUser } from '@/lib/auth'; // Import getCurrentUser
+import { getCurrentUser, ROLES } from '@/lib/auth'; // Import getCurrentUser and ROLES
 import {
   Dialog,
   DialogContent,
@@ -30,24 +31,45 @@ export default function FlightHistoryPage() {
   const [error, setError] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedFlightLog, setSelectedFlightLog] = useState(null);
+  const [currentUserRole, setCurrentUserRole] = useState(null); // State for user role
 
   useEffect(() => {
     const fetchFlightData = async () => {
       try {
         setLoading(true);
         setError(null);
-        const currentUser = getCurrentUser();
-        const token = currentUser?.token;
+        const currentUser = await getCurrentUser(); // Await getCurrentUser
+        setCurrentUserRole(currentUser?.role); // Set the user role
 
-        if (!token) {
+        const token = Cookies.get('firebase_id_token'); // Get token from cookie
+
+        if (!currentUser || !token) {
           setError("Authentication required. Please log in.");
+          setLoading(false);
+          router.push('/login'); // Redirect to login if not authenticated
+          return;
+        }
+
+        // Role-based access control for the page
+        // All authenticated users can view flights, but pilots only see their own
+        if (currentUser.role === ROLES.VIEWER) {
+          // Viewers can see all flights, but cannot add/edit
+        } else if (currentUser.role === ROLES.PILOT && !currentUser.pilotId) {
+          setError("Pilot profile not linked. Cannot view flights.");
           setLoading(false);
           return;
         }
 
-        // Fetch Flight Logs
         const baseUrl = window.location.origin;
-        const flightsResponse = await fetch(`${baseUrl}/api/flights`, {
+        let flightsApiUrl = `${baseUrl}/api/flights`;
+
+        // If user is a Pilot, filter flights by their pilotId
+        if (currentUser.role === ROLES.PILOT && currentUser.pilotId) {
+          flightsApiUrl = `${baseUrl}/api/flights?pilotId=${currentUser.pilotId}`;
+        }
+
+        // Fetch Flight Logs
+        const flightsResponse = await fetch(flightsApiUrl, { // Use filtered API URL
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (!flightsResponse.ok) throw new Error(`HTTP error! status: ${flightsResponse.status}`);
@@ -215,7 +237,7 @@ export default function FlightHistoryPage() {
               <span className="text-gray-500">Drone:</span>
               <span>
                 {selectedFlightLog?.droneId ? 
-                  (mockDrones.find(d => d.id === selectedFlightLog.droneId)?.model || selectedFlightLog.droneId) : 
+                  (drones.find(d => d.id === selectedFlightLog.droneId)?.model || selectedFlightLog.droneId) : // Use 'drones' state
                   'N/A'}
               </span>
             </div>
