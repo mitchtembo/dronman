@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+drone-solutions-backend-firebase-adminsdk-fbsvc-bca6d6f48d.json
 
 # vercel
 .vercel
@@ -60,4 +61,4 @@ node_modules/
 # OS specific
 # Task files
 tasks.json
-tasks/ 
+tasks/
