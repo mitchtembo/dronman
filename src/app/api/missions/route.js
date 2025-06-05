@@ -233,13 +233,27 @@ const handlePutMission = async (request) => {
   try {
     const updatedFields = await request.json();
     const missionRef = db.collection('missions').doc(id);
+    const missionDoc = await missionRef.get();
+    const requestingUser = request.user; // Get requesting user from authMiddleware
+
+    if (!missionDoc.exists) {
+      return errorResponse('Mission not found', 404);
+    }
+
+    const missionData = { id: missionDoc.id, ...missionDoc.data() };
+
+    // Pilots can only update their own assigned missions
+    if (requestingUser.role === 'Pilot' && requestingUser.pilotId !== missionData.pilotId) {
+      return errorResponse('Forbidden: You can only update your own assigned missions', 403);
+    }
+
     await missionRef.update(updatedFields);
 
     const updatedMissionDoc = await missionRef.get();
     if (updatedMissionDoc.exists) {
       return successResponse({ id: updatedMissionDoc.id, ...updatedMissionDoc.data() });
     }
-    return errorResponse('Mission not found', 404);
+    return errorResponse('Mission not found', 404); // Should not happen if update was successful
   } catch (error) {
     return handleApiError(error);
   }
@@ -249,6 +263,7 @@ const handlePutMission = async (request) => {
 const handleDeleteMission = async (request) => {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
+  const requestingUser = request.user; // Get requesting user from authMiddleware
 
   if (!id) {
     return errorResponse('Mission ID is required', 400);
@@ -262,6 +277,11 @@ const handleDeleteMission = async (request) => {
       return errorResponse('Mission not found', 404);
     }
 
+    // Only Admins can delete missions
+    if (requestingUser.role !== 'Administrator') {
+      return errorResponse('Forbidden: Only administrators can delete missions', 403);
+    }
+
     await missionRef.delete();
     return new NextResponse(null, { status: 204 }); // 204 No Content for successful deletion
   } catch (error) {
@@ -272,5 +292,5 @@ const handleDeleteMission = async (request) => {
 // Export wrapped handlers with RBAC
 export const GET = withAuth(handleGetMissions, ['Administrator', 'Pilot', 'Viewer']); // All authenticated users can view
 export const POST = withAuth(handlePostMission, ['Administrator']); // Only admins can create
-export const PUT = withAuth(handlePutMission, ['Administrator']); // Only admins can update
+export const PUT = withAuth(handlePutMission, ['Administrator', 'Pilot']); // Admins can update any, pilots can update their own
 export const DELETE = withAuth(handleDeleteMission, ['Administrator']); // Only admins can delete
