@@ -1,36 +1,25 @@
 // src/app/api/drones/[id]/flight-hours/route.js
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/dbConnect';
-import FlightLog from '@/models/FlightLog';
-import mongoose from 'mongoose';
 import { withAuth } from '@/lib/authMiddleware';
-import { successResponse, errorResponse, handleApiError } from '@/lib/apiResponse'; // Import API response helpers
+import { successResponse, errorResponse, handleApiError } from '@/lib/apiResponse';
+import { db } from '@/lib/firebaseAdmin'; // Import Firestore db
 
 const handleGetDroneFlightHours = async (request, { params }) => {
-  await dbConnect();
   const { id } = params; // droneId from the URL
 
   try {
-    const result = await FlightLog.aggregate([
-      {
-        $match: {
-          droneId: id, // Match by custom droneId string
-        },
-      },
-      {
-        $group: {
-          _id: '$droneId',
-          totalMinutes: { $sum: '$duration' },
-        },
-      },
-    ]);
+    const flightLogsSnapshot = await db.collection('flightlogs')
+      .where('droneId', '==', id)
+      .get();
 
-    if (result.length > 0) {
-      const totalHours = parseFloat((result[0].totalMinutes / 60).toFixed(1));
-      return successResponse({ droneId: id, totalHours });
-    } else {
-      return successResponse({ droneId: id, totalHours: 0 });
-    }
+    let totalMinutes = 0;
+    flightLogsSnapshot.docs.forEach(doc => {
+      totalMinutes += doc.data().duration || 0;
+    });
+
+    const totalHours = parseFloat((totalMinutes / 60).toFixed(1));
+    return successResponse({ droneId: id, totalHours });
+
   } catch (error) {
     return handleApiError(error);
   }

@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() { return request.auth != null; }
+    function getUserRole() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role; }
+    function isPilot() { return isAuthenticated() && getUserRole() == 'Pilot'; }
+    function isAdmin() { return isAuthenticated() && getUserRole() == 'Administrator'; }
+    function getUserPilotId() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.pilotId; }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAuthenticated() && request.auth.uid == userId; // User can create their own doc on signup
+      allow update, delete: if isAdmin(); // Admins manage user roles and deletion
+    }
+
+    match /pilots/{pilotId} {
+      allow read: if isAuthenticated() && (isAdmin() || (isPilot() && pilotId == getUserPilotId()));
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /drones/{droneId} {
+      allow read: if isAuthenticated(); // All authenticated users can view
+      allow write: if isAdmin(); // Only admins can create, update, delete
+    }
+
+    match /missions/{missionId} {
+      allow read: if isAdmin() || (isPilot() && get(/databases/$(database)/documents/missions/$(missionId)).data.pilotId == getUserPilotId());
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /flightlogs/{flightlogId} {
+      allow read: if isAdmin() || (isPilot() && get(/databases/$(database)/documents/flightlogs/$(flightlogId)).data.pilotId == getUserPilotId());
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isAdmin() || (isAuthenticated() && request.auth.uid == resource.data.userId);
+      allow create, delete: if isAdmin();
+      allow update: if (isAdmin()) ||
+        (isAuthenticated() && request.auth.uid == resource.data.userId &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']));
+    }
+
+    // Placeholder for other collection-specific rules
+    match /{document=**} {
+      allow read, write: if false; // Default deny all, specific rules below
+    }
+  }
+}

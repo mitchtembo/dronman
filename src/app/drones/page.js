@@ -5,25 +5,39 @@ import React, { useState, useEffect } from 'react';
 import DataTable from '@/components/ui/DataTable';
 import { PlusCircle, Search } from 'lucide-react';
 import DroneTableSkeleton from '@/components/ui/DroneTableSkeleton';
-import { getCurrentUser } from '@/lib/auth'; // Import getCurrentUser
+import { getCurrentUser, ROLES } from '@/lib/auth'; // Import getCurrentUser and ROLES
+import Cookies from 'js-cookie'; // Import Cookies
+import { useRouter } from 'next/navigation'; // Import useRouter
 
 export default function DronesPage() {
+  const router = useRouter(); // Initialize useRouter
   const [searchTerm, setSearchTerm] = useState('');
   const [drones, setDrones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentUserRole, setCurrentUserRole] = useState(null); // State for user role
 
   useEffect(() => {
     const fetchDrones = async () => {
       try {
         setLoading(true);
         setError(null);
-        const currentUser = getCurrentUser();
-        const token = currentUser?.token;
+        const currentUser = await getCurrentUser(); // Await getCurrentUser
+        setCurrentUserRole(currentUser?.role); // Set the user role
 
-        if (!token) {
+        const token = Cookies.get('firebase_id_token'); // Get token from cookie
+
+        if (!currentUser || !token) {
           setError("Authentication required. Please log in.");
           setLoading(false);
+          router.push('/login'); // Redirect to login if not authenticated
+          return;
+        }
+
+        // Role-based access control for the page
+        // Only Admin should see the general drones table
+        if (currentUser.role !== ROLES.ADMIN) {
+          router.push('/access-denied'); // Redirect if not an Admin
           return;
         }
 

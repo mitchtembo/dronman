@@ -1,0 +1,104 @@
+# Overview
+This Product Requirements Document outlines the migration of the Drone Pilot Management System's backend from MongoDB to Firebase. The primary goal is to leverage Firebase's managed services for authentication and NoSQL database (Firestore) to improve scalability, simplify backend operations, and enhance security. The system will continue to manage drones, pilots, flight logs, missions, notifications, and users, with specific access control rules for administrators and pilots.
+
+# Core Features
+1.  **Firebase Authentication Integration**:
+    *   **What it does**: Replaces existing custom user authentication with Firebase Authentication.
+    *   **Why it's important**: Provides robust, scalable, and secure user management, including password hashing, email verification, and multi-factor authentication capabilities out-of-the-box.
+    *   **How it works**: Users will authenticate directly with Firebase Auth. Upon successful authentication, a Firebase ID token will be issued, which can be verified on the backend.
+
+2.  **Firestore Database Migration**:
+    *   **What it does**: Migrates all existing MongoDB collections (drones, flightlogs, missions, notifications, pilots, users) to Firestore collections.
+    *   **Why it's important**: Leverages a scalable, flexible NoSQL cloud database with real-time capabilities and robust querying.
+    *   **How it works**: Each MongoDB collection will become a Firestore collection. Documents will be mapped, with MongoDB `_id` becoming Firestore document IDs. Relationships will be maintained by storing document IDs.
+
+3.  **Role-Based Access Control (RBAC) with Firestore Security Rules**:
+    *   **What it does**: Implements granular access control based on user roles (Administrator, Pilot) using Firestore Security Rules.
+    *   **Why it's important**: Ensures data security and privacy by restricting access to sensitive information based on user permissions.
+    *   **How it works**:
+        *   **Administrators**: Full read/write access to all collections.
+        *   **Pilots**: Read-only access to their own `missions`, `flightlogs`, and `notifications`. Read access to their own `pilot` and `user` profiles. This will be enforced by rules checking `request.auth.uid` against relevant document fields.
+
+4.  **Backend API Route Refactoring**:
+    *   **What it does**: Rewrites all existing Next.js API routes (`src/app/api/*`) to interact with Firestore using the Firebase Admin SDK instead of Mongoose/MongoDB.
+    *   **Why it's important**: Adapts the backend logic to the new database technology and ensures proper data handling and authorization.
+    *   **How it works**: Each API endpoint will use `firebase-admin` to perform CRUD operations on Firestore collections. Server-side filtering will be implemented for pilot-specific data.
+
+5.  **API Documentation with Swagger/OpenAPI**:
+    *   **What it does**: Generates interactive API documentation using Swagger UI.
+    *   **Why it's important**: Provides clear, up-to-date documentation for developers consuming the API, facilitating easier integration and understanding of available endpoints and data structures.
+    *   **How it works**: Integrate a Swagger library (e.g., `swagger-jsdoc`, `swagger-ui-express` or similar for Next.js) to define API endpoints and models. A dedicated route will serve the Swagger UI.
+
+# Technical Architecture
+-   **Backend Framework**: Next.js API Routes
+-   **Database**: Google Cloud Firestore
+-   **Authentication**: Firebase Authentication
+-   **Backend SDK**: Firebase Admin SDK
+-   **API Documentation**: Swagger/OpenAPI
+-   **Data Models (Firestore Collections)**:
+    *   `users`: { `uid` (Firebase Auth UID), `email`, `role` (Administrator/Pilot), `pilotId` (reference to pilots collection, null for non-pilots) }
+    *   `pilots`: { `id` (Firestore Doc ID), `userId` (reference to users collection), `name`, `email`, `contact`, `status`, `certifications` }
+    *   `drones`: { `id` (Firestore Doc ID), `model`, `serial`, `make`, `purchaseDate`, `status`, `lastMaintenance`, `nextServiceDate` }
+    *   `missions`: { `id` (Firestore Doc ID), `name`, `client`, `location`, `pilotId` (reference to pilots collection), `droneId` (reference to drones collection), `date`, `status` }
+    *   `flightlogs`: { `id` (Firestore Doc ID), `pilotId` (reference to pilots collection), `droneId` (reference to drones collection), `date`, `duration`, `location`, `missionType`, `weather`, `incidents`, `notes` }
+    *   `notifications`: { `id` (Firestore Doc ID), `userId` (reference to users collection), `type`, `message`, `date`, `read` }
+
+# Development Roadmap
+-   **Phase 1: Firebase Setup & Core Integration**
+    *   Initialize Firebase Admin SDK.
+    *   Remove old MongoDB models and connection.
+    *   Refactor `src/app/api/auth/login/route.js` for Firebase Auth.
+    *   Refactor `src/app/api/users/route.js` for Firestore.
+    *   Implement basic Firestore Security Rules for `users` collection.
+-   **Phase 2: Data Model & API Refactoring (Core Collections)**
+    *   Refactor `src/app/api/pilots/route.js` for Firestore.
+    *   Refactor `src/app/api/drones/route.js` for Firestore.
+    *   Refactor `src/app/api/missions/route.js` for Firestore.
+    *   Refactor `src/app/api/flights/route.js` for Firestore.
+    *   Refactor `src/app/api/notifications/route.js` for Firestore.
+    *   Update `src/lib/authMiddleware.js` to verify Firebase tokens and extract roles/pilotId.
+-   **Phase 3: Advanced API & Security Rules**
+    *   Implement pilot-specific data filtering in API routes (missions, flightlogs, notifications).
+    *   Refine Firestore Security Rules for all collections to enforce detailed RBAC.
+    *   Update specific API routes like `src/app/api/pilots/[id]/flight-hours/route.js` and `src/app/api/drones/[id]/flight-hours/route.js`.
+    *   Update `src/app/api/notifications/check-expiring-certs/route.js`.
+-   **Phase 4: API Documentation & Cleanup**
+    *   Integrate Swagger/OpenAPI documentation.
+    *   Create a data migration script (if needed).
+    *   Update frontend components to use new API routes.
+    *   Comprehensive testing.
+
+# Logical Dependency Chain
+1.  Firebase Project Setup (manual by user)
+2.  Firebase Admin SDK Initialization (code setup)
+3.  Removal of MongoDB dependencies (models, dbConnect)
+4.  Firebase Authentication integration in login API.
+5.  Core Firestore API routes for `users`, `pilots`, `drones`, `missions`, `flightlogs`, `notifications`.
+6.  Auth middleware update for Firebase tokens.
+7.  Granular Firestore Security Rules.
+8.  Pilot-specific data filtering in API routes.
+9.  Swagger API documentation.
+10. Data migration script (if existing data).
+11. Frontend API call updates.
+12. Comprehensive testing.
+
+# Risks and Mitigations
+-   **Data Migration Complexity**: Risk of data loss or corruption during migration.
+    *   **Mitigation**: Develop a robust, tested migration script. Ensure backups of MongoDB data before migration.
+-   **Firestore Data Modeling Challenges**: Mapping relational MongoDB data to a NoSQL Firestore structure might be complex.
+    *   **Mitigation**: Carefully design the Firestore schema, considering denormalization for read optimization where appropriate.
+-   **Security Rule Complexity**: Incorrectly configured security rules could lead to data exposure or unauthorized access.
+    *   **Mitigation**: Thoroughly test all security rules with different user roles. Follow Firebase best practices for security.
+-   **Performance Issues**: Initial Firestore queries might not be optimized.
+    *   **Mitigation**: Monitor Firestore usage and query performance. Implement indexing and optimize queries as needed.
+-   **Next.js API Route Compatibility**: Ensuring all existing API logic translates correctly to Firestore operations.
+    *   **Mitigation**: Incremental refactoring and thorough unit/integration testing for each API route.
+
+# Appendix
+-   MongoDB Collection Schemas (as provided in initial prompt)
+    *   `drones`: `id`, `model`, `serial`, `make`, `purchaseDate`, `status`, `lastMaintenance`, `nextServiceDate`
+    *   `flightlogs`: `id`, `pilotId`, `droneId`, `date`, `duration`, `location`, `missionType`, `weather`, `incidents`, `notes`
+    *   `missions`: `id`, `name`, `client`, `location`, `pilotId`, `droneId`, `date`, `status`
+    *   `notifications`: `id`, `userId`, `type`, `message`, `date`, `read`
+    *   `pilots`: `id`, `userId`, `name`, `email`, `contact`, `status`, `certifications`
+    *   `users`: `id`, `username`, `password` (will be handled by Firebase Auth), `role`, `pilotId`

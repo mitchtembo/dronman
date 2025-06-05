@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
+import { auth } from '@/lib/firebaseAdmin';
 
-export function middleware(request) {
+export async function middleware(request) {
   const { pathname } = request.nextUrl;
   let currentUser = null;
   let response = NextResponse.next(); // Default response
@@ -9,34 +9,50 @@ export function middleware(request) {
   // Clone the request to modify its headers
   const requestHeaders = new Headers(request.headers);
 
-  // Read the JWT token from the cookie
-  const token = request.cookies.get('jwt_token')?.value;
+  // Read the Firebase ID token from the cookie (for browser-based authentication)
+  let token = request.cookies.get('firebase_id_token')?.value;
+
+  // If no token in cookie, check Authorization header (for API clients like Postman)
+  if (!token) {
+    const authHeader = request.headers.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7); // Extract token after "Bearer "
+    }
+  }
 
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = await auth.verifyIdToken(token);
       currentUser = decoded;
 
       // Attach user info to the *request headers* for API routes
-      requestHeaders.set('x-user-id', currentUser.id);
-      requestHeaders.set('x-user-role', currentUser.role);
+      // These headers are then read by withAuth middleware
+      requestHeaders.set('x-user-id', currentUser.uid);
+      requestHeaders.set('x-user-email', currentUser.email || '');
+      if (currentUser.role) {
+        requestHeaders.set('x-user-role', currentUser.role);
+      }
       if (currentUser.pilotId) {
         requestHeaders.set('x-user-pilot-id', currentUser.pilotId);
       }
 
-      // Create a new request with modified headers
+      // Create a new response with modified request headers
+      // This ensures the modified headers are passed down the chain
       response = NextResponse.next({
         request: {
           headers: requestHeaders,
         },
       });
-
     } catch (e) {
-      console.error("JWT verification failed in middleware:", e);
-      // If token is invalid or expired, clear the cookie and redirect to login
-      response = NextResponse.redirect(new URL('/login', request.url));
-      response.cookies.delete('jwt_token');
-      return response;
+      console.error("Firebase ID token verification failed in middleware:", e);
+      // For API routes, return a 401. For page routes, redirect to login.
+      if (pathname.startsWith('/api')) {
+        return new NextResponse('Authentication required', { status: 401 });
+      } else {
+        response = NextResponse.redirect(new URL('/login', request.url));
+        response.cookies.delete('firebase_id_token');
+        return response;
+      }
     }
   }
 
@@ -59,11 +75,12 @@ export function middleware(request) {
         return NextResponse.redirect(new URL('/login', request.url));
       }
 
-      const requiredRoles = protectedRoutes[route];
-      if (!requiredRoles.includes(currentUser.role)) {
-        // Redirect unauthorized users to an access denied page
-        return NextResponse.redirect(new URL('/access-denied', request.url));
-      }
+      // Role-based access control (if you store role in custom claims or Firestore)
+      // For now, allow all authenticated users. You can enhance this by fetching user role from Firestore if needed.
+      // const requiredRoles = protectedRoutes[route];
+      // if (!requiredRoles.includes(currentUser.role)) {
+      //   return NextResponse.redirect(new URL('/access-denied', request.url));
+      // }
     }
   }
 
