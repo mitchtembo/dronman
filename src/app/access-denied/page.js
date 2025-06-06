@@ -9,7 +9,7 @@ export default function AccessDeniedPage() {
         <CardHeader>
           <CardTitle className="text-3xl text-red-600">Access Denied</CardTitle>
           <CardDescription>
-            You do not have the necessary permissions to view this page.
+           OOps You do not have the necessary permissions to view this page.
           </CardDescription>
         </CardHeader>
         <CardContent>
