@@ -3,6 +3,7 @@ import * as yup from 'yup';
 import { db, auth } from '@/lib/firebaseAdmin';
 import { withAuth } from '@/lib/authMiddleware';
 import { successResponse, errorResponse, handleApiError } from '@/lib/apiResponse';
+import { ROLES } from '@/lib/auth'; // Import ROLES
 
 /**
  * @openapi
@@ -269,14 +270,30 @@ const handlePostUser = async (request) => {
 
     // Create user document in Firestore
     const userDocRef = db.collection('users').doc(userRecord.uid);
+    let pilotId = newUser.pilotId || null;
+
+    // If the new user is a Pilot, create a corresponding entry in the 'pilots' collection
+    if (newUser.role === ROLES.PILOT) {
+      const pilotName = newUser.email.split('@')[0]; // Simple name derivation from email
+      const newPilotRef = await db.collection('pilots').add({
+        userId: userRecord.uid,
+        name: pilotName,
+        email: newUser.email,
+        contact: newUser.contact || null, // Assuming contact might be part of pilot creation
+        status: 'Active', // Default status for new pilots
+        certifications: [], // New pilots start with no certifications
+      });
+      pilotId = newPilotRef.id; // Set the pilotId to the newly created pilot document ID
+    }
+
     await userDocRef.set({
       uid: userRecord.uid,
       email: newUser.email,
       role: newUser.role,
-      pilotId: newUser.pilotId || null,
+      pilotId: pilotId, // Link the user to the pilot document
     });
 
-    return successResponse({ id: userRecord.uid, email: newUser.email, role: newUser.role, pilotId: newUser.pilotId }, 201);
+    return successResponse({ id: userRecord.uid, email: newUser.email, role: newUser.role, pilotId: pilotId }, 201);
   } catch (error) {
     // Handle Firebase Auth errors (e.g., email-already-in-use)
     if (error.code && error.code.startsWith('auth/')) {
