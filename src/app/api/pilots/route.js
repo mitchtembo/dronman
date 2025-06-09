@@ -242,6 +242,23 @@ import { successResponse, errorResponse, handleApiError } from '@/lib/apiRespons
  *         $ref: '#/components/responses/InternalServerError'
  */
 
+// Helper function to process pilot data, converting Firestore Timestamps to ISO strings
+const processPilotData = (pilotData) => {
+  if (pilotData && pilotData.certifications && Array.isArray(pilotData.certifications)) {
+    pilotData.certifications = pilotData.certifications.map(cert => {
+      const newCert = { ...cert };
+      if (newCert.expires && typeof newCert.expires.toDate === 'function') {
+        newCert.expires = newCert.expires.toDate().toISOString();
+      }
+      if (newCert.issued && typeof newCert.issued.toDate === 'function') {
+        newCert.issued = newCert.issued.toDate().toISOString();
+      }
+      return newCert;
+    });
+  }
+  return pilotData;
+};
+
 // GET /api/pilots
 const handleGetPilots = async (request) => {
   try {
@@ -251,13 +268,19 @@ const handleGetPilots = async (request) => {
     if (id) {
       const pilotDoc = await db.collection('pilots').doc(id).get();
       if (pilotDoc.exists) {
-        return successResponse({ id: pilotDoc.id, ...pilotDoc.data() });
+        const rawData = pilotDoc.data();
+        const processedData = processPilotData(rawData);
+        return successResponse({ id: pilotDoc.id, ...processedData });
       }
       return errorResponse('Pilot not found', 404);
     }
 
     const pilotsSnapshot = await db.collection('pilots').get();
-    const pilots = pilotsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const pilots = pilotsSnapshot.docs.map(doc => {
+      const rawData = doc.data();
+      const processedData = processPilotData(rawData);
+      return { id: doc.id, ...processedData };
+    });
     console.log('API: Fetching all pilots:', pilots); // Debug log
     return successResponse(pilots);
   } catch (error) {
