@@ -12,11 +12,13 @@ export default function LoginPage() {
   const [email, setEmail] = useState(''); // Changed from username to email
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false); // New state for loading
   const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setIsLoading(true); // Set loading to true
     try {
       const user = await login(email, password); // Pass email and password
       if (user) {
@@ -27,6 +29,8 @@ export default function LoginPage() {
       }
     } catch (err) {
       setError(err.message || 'An unexpected error occurred during login.');
+    } finally {
+      setIsLoading(false); // Set loading to false in finally block
     }
   };
 
@@ -63,8 +67,9 @@ export default function LoginPage() {
               />
             </div>
             {error && <p className="text-red-500 text-sm">{error}</p>}
-            <Button type="submit" className="w-full">
-              Login
+            {isLoading && <p className="text-sm text-gray-500">Logging in...</p>}
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Logging in...' : 'Login'}
             </Button>
           </form>
           <p className="mt-4 text-center text-sm text-gray-500">

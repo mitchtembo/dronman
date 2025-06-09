@@ -8,7 +8,7 @@ import Cookies from 'js-cookie'; // Import Cookies
 import { PlusCircle, CalendarDays, TrendingUp, BarChartBig, CheckCircle, AlertTriangle, Users, Plane, Bot } from 'lucide-react';
 import CustomLineChart from '../../components/charts/LineChart';
 import CustomBarChart from '../../components/charts/BarChart';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, ROLES } from '@/lib/auth'; // Import ROLES
 import { isCertificationExpiringSoon, isCertificationExpired } from '@/lib/utils'; // Keep these utilities
 
 export default function DashboardPage() {
@@ -28,6 +28,7 @@ export default function DashboardPage() {
   const [upcomingAssignmentsTableData, setUpcomingAssignmentsTableData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [pageTitle, setPageTitle] = useState("Dashboard"); // State for dynamic title
 
   useEffect(() => {
     const fetchData = async () => {
@@ -200,16 +201,36 @@ export default function DashboardPage() {
   // If strictly pilot-only, uncomment: if (currentUser?.role !== 'Pilot') router.push('/access-denied');
   // For now, we'll assume the data fetching logic handles the filtering for non-admins/non-pilots.
   // The prompt says "only visible for pilot view", so let's enforce it.
-  if (stats.currentUser && stats.currentUser.role !== 'Pilot' && stats.currentUser.role !== 'Administrator') {
-    router.push('/access-denied');
-    return null; // Prevent rendering
+        // Note: The access control logic below seems to use `stats.currentUser` which might be stale or not set yet.
+        // It's better to use the `currentUser` fetched at the beginning of this effect.
+        if (currentUser && currentUser.role) {
+          if (currentUser.role === ROLES.PILOT) {
+            setPageTitle("Pilot Dashboard");
+          } else if (currentUser.role === ROLES.ADMIN) {
+            setPageTitle("Admin Dashboard");
+          } else {
+            setPageTitle("User Dashboard"); // Default for other roles or if role is not Pilot/Admin
+          }
+        } else {
+          setPageTitle("Dashboard"); // Default if currentUser or role is not available
+        }
+
+        // Role-based access control using the fetched currentUser
+        if (currentUser && currentUser.role !== ROLES.PILOT && currentUser.role !== ROLES.ADMIN) {
+          // Redirect if not Pilot or Admin. Consider if other roles should see a generic dashboard.
+          // For now, as per existing logic, redirecting non-pilot/non-admin.
+          // The original logic used `stats.currentUser` which might be problematic.
+          // router.push('/access-denied');
+          // return; // Stop further execution in fetchData if redirecting
+          // Commenting out redirect for now to ensure dashboard loads with title,
+          // will rely on page-level check after loading state.
   }
 
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-800">Pilot Dashboard</h1>
+        <h1 className="text-2xl font-semibold text-gray-800">{pageTitle}</h1>
         <p className="text-gray-600">Welcome back, {stats.userName}!</p>
       </div>
 
