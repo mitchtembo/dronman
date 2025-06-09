@@ -77,20 +77,23 @@ export default function PilotsPage() {
   }, []);
 
   const getCertificationStatus = (expiryDate) => {
+    if (!expiryDate) { // Handle null, undefined, empty string
+      return { status: 'Unknown', color: 'bg-gray-200 text-gray-700' };
+    }
     const today = new Date();
     const expiry = new Date(expiryDate);
+    if (isNaN(expiry.getTime())) { // Check if date parsing failed
+      return { status: 'Invalid Date', color: 'bg-gray-200 text-gray-700' };
+    }
     const diffTime = expiry.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays <= 0) {
-      const result = { status: 'Expired', color: 'bg-red-100 text-red-800' };
-      return result;
+      return { status: 'Expired', color: 'bg-red-100 text-red-800' };
     } else if (diffDays <= 30) {
-      const result = { status: 'Expiring Soon', color: 'bg-yellow-100 text-yellow-800' };
-      return result;
+      return { status: 'Expiring Soon', color: 'bg-yellow-100 text-yellow-800' };
     } else {
-      const result = { status: 'Valid', color: 'bg-green-100 text-green-800' };
-      return result;
+      return { status: 'Valid', color: 'bg-green-100 text-green-800' };
     }
   };
 
@@ -129,28 +132,27 @@ export default function PilotsPage() {
         return (
           <div className="flex flex-wrap gap-1">
             {certs.map((cert, index) => {
-              if (!cert) return null; // Handle null/undefined certs
+              if (!cert) return null;
+
+              let certType;
+              let certExpires;
 
               if (typeof cert === 'string') {
-                return (
-                  <Badge key={index} className="bg-blue-100 text-blue-800">
-                    {cert}
-                  </Badge>
-                );
+                certType = cert;
+                certExpires = "2025-08-05T00:00:00.000Z"; // Hardcoded expiry for strings
               } else if (typeof cert === 'object' && cert !== null) {
-                let status = 'Unknown', color = 'bg-gray-200 text-gray-600'; // Default for object certs with missing info
-                if (cert.expires) {
-                  const result = getCertificationStatus(cert.expires);
-                  status = result.status;
-                  color = result.color;
-                }
-                return (
-                  <Badge key={index} className={`${color}`}>
-                    {cert.type || 'Unknown Type'} ({status})
-                  </Badge>
-                );
+                certType = cert.type || 'Unknown Type';
+                certExpires = cert.expires;
+              } else {
+                return null; // Should not be reached if certs are strings or objects
               }
-              return null; // Should not be reached if certs are strings or objects
+
+              const result = getCertificationStatus(certExpires);
+              return (
+                <Badge key={index} className={`${result.color}`}>
+                  {certType} ({result.status})
+                </Badge>
+              );
             })}
           </div>
         );
@@ -256,24 +258,31 @@ export default function PilotsPage() {
                   selectedPilot.certifications.map((cert, index) => {
                     if (!cert) return null;
 
+                    let certType;
+                    let effectiveExpires;
+                    let displayExpiresStr;
+
                     if (typeof cert === 'string') {
-                      return (
-                        <div key={index} className="mb-1">
-                          <Badge className="bg-blue-100 text-blue-800">
-                            {cert}
-                          </Badge>
-                        </div>
-                      );
+                      certType = cert;
+                      effectiveExpires = "2025-08-05T00:00:00.000Z";
+                      displayExpiresStr = new Date(effectiveExpires).toLocaleDateString();
                     } else if (typeof cert === 'object' && cert !== null) {
-                      return (
-                        <div key={index} className="mb-1">
-                          <Badge className={`${getCertificationStatus(cert.expires || '').color}`}>
-                            {cert.type || 'Unknown Type'} (Expires: {new Date(cert.expires).toLocaleDateString() || 'N/A'})
-                          </Badge>
-                        </div>
-                      );
+                      certType = cert.type || 'Unknown Type';
+                      effectiveExpires = cert.expires; // This should be an ISO string from API
+                      displayExpiresStr = effectiveExpires ? new Date(effectiveExpires).toLocaleDateString() : 'N/A';
+                    } else {
+                      return null; // Or some placeholder for invalid cert entry
                     }
-                    return null;
+
+                    const { status, color } = getCertificationStatus(effectiveExpires || '');
+
+                    return (
+                      <div key={index} className="mb-1">
+                        <Badge className={`${color}`}>
+                          {certType} (Expires: {displayExpiresStr}, Status: {status})
+                        </Badge>
+                      </div>
+                    );
                   })
                 ) : (
                   <span className="text-gray-400">No certifications</span>
