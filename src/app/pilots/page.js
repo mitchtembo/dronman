@@ -64,7 +64,6 @@ export default function PilotsPage() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        console.log('Fetched pilots data:', data); // Log the fetched data
         setPilots(data.data); // Access data from the 'data' field of the success response
       } catch (err) {
         console.error("Failed to fetch pilots:", err);
@@ -84,11 +83,14 @@ export default function PilotsPage() {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays <= 0) {
-      return { status: 'Expired', color: 'bg-red-100 text-red-800' };
+      const result = { status: 'Expired', color: 'bg-red-100 text-red-800' };
+      return result;
     } else if (diffDays <= 30) {
-      return { status: 'Expiring Soon', color: 'bg-yellow-100 text-yellow-800' };
+      const result = { status: 'Expiring Soon', color: 'bg-yellow-100 text-yellow-800' };
+      return result;
     } else {
-      return { status: 'Valid', color: 'bg-green-100 text-green-800' };
+      const result = { status: 'Valid', color: 'bg-green-100 text-green-800' };
+      return result;
     }
   };
 
