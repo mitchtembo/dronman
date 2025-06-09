@@ -246,14 +246,19 @@ import { successResponse, errorResponse, handleApiError } from '@/lib/apiRespons
 const processPilotData = (pilotData) => {
   if (pilotData && pilotData.certifications && Array.isArray(pilotData.certifications)) {
     pilotData.certifications = pilotData.certifications.map(cert => {
-      const newCert = { ...cert };
-      if (newCert.expires && typeof newCert.expires.toDate === 'function') {
-        newCert.expires = newCert.expires.toDate().toISOString();
+      if (typeof cert === 'string') {
+        return cert; // Return the string directly
+      } else if (typeof cert === 'object' && cert !== null) {
+        const newCert = { ...cert }; // Clone to avoid modifying original data
+        if (newCert.expires && typeof newCert.expires.toDate === 'function') {
+          newCert.expires = newCert.expires.toDate().toISOString();
+        }
+        if (newCert.issued && typeof newCert.issued.toDate === 'function') {
+          newCert.issued = newCert.issued.toDate().toISOString();
+        }
+        return newCert;
       }
-      if (newCert.issued && typeof newCert.issued.toDate === 'function') {
-        newCert.issued = newCert.issued.toDate().toISOString();
-      }
-      return newCert;
+      return cert; // Fallback for other unexpected types, or null/undefined
     });
   }
   return pilotData;

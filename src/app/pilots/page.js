@@ -129,19 +129,28 @@ export default function PilotsPage() {
         return (
           <div className="flex flex-wrap gap-1">
             {certs.map((cert, index) => {
-              if (!cert || typeof cert !== 'object') return null;
-              // Defensive: check cert.expires exists before calling getCertificationStatus
-              let status = 'Unknown', color = 'bg-gray-200 text-gray-600';
-              if (cert.expires) {
-                const result = getCertificationStatus(cert.expires);
-                status = result.status;
-                color = result.color;
+              if (!cert) return null; // Handle null/undefined certs
+
+              if (typeof cert === 'string') {
+                return (
+                  <Badge key={index} className="bg-blue-100 text-blue-800">
+                    {cert}
+                  </Badge>
+                );
+              } else if (typeof cert === 'object' && cert !== null) {
+                let status = 'Unknown', color = 'bg-gray-200 text-gray-600'; // Default for object certs with missing info
+                if (cert.expires) {
+                  const result = getCertificationStatus(cert.expires);
+                  status = result.status;
+                  color = result.color;
+                }
+                return (
+                  <Badge key={index} className={`${color}`}>
+                    {cert.type || 'Unknown Type'} ({status})
+                  </Badge>
+                );
               }
-              return (
-                <Badge key={index} className={`${color}`}>
-                  {cert.type || 'Unknown'} ({status})
-                </Badge>
-              );
+              return null; // Should not be reached if certs are strings or objects
             })}
           </div>
         );
@@ -244,13 +253,28 @@ export default function PilotsPage() {
               <span className="text-gray-500">Certifications:</span>
               <div>
                 {selectedPilot?.certifications && selectedPilot.certifications.length > 0 ? (
-                  selectedPilot.certifications.map((cert, index) => (
-                    <div key={index} className="mb-1">
-                      <Badge className={`${getCertificationStatus(cert.expires || '').color}`}>
-                        {cert.type || 'Unknown'} (Expires: {cert.expires || 'N/A'})
-                      </Badge>
-                    </div>
-                  ))
+                  selectedPilot.certifications.map((cert, index) => {
+                    if (!cert) return null;
+
+                    if (typeof cert === 'string') {
+                      return (
+                        <div key={index} className="mb-1">
+                          <Badge className="bg-blue-100 text-blue-800">
+                            {cert}
+                          </Badge>
+                        </div>
+                      );
+                    } else if (typeof cert === 'object' && cert !== null) {
+                      return (
+                        <div key={index} className="mb-1">
+                          <Badge className={`${getCertificationStatus(cert.expires || '').color}`}>
+                            {cert.type || 'Unknown Type'} (Expires: {new Date(cert.expires).toLocaleDateString() || 'N/A'})
+                          </Badge>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })
                 ) : (
                   <span className="text-gray-400">No certifications</span>
                 )}
