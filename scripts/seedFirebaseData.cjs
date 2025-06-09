@@ -52,23 +52,70 @@ const seedData = async () => {
 
   // --- Pilots Collection (assuming some pilots are already linked via login automation) ---
   // We need to get existing pilot UIDs to link missions/flightlogs
+
+  const pilotsToSeed = [
+    {
+      userId: 'seededUser1',
+      name: "Ethan Moyo",
+      email: "ethan.moyo@example.com",
+      contact: "555-0101",
+      status: "Active",
+      certifications: [
+        { type: "RPL", issued: new Date("2023-01-01"), expires: new Date("2024-12-31"), status: "Valid" },
+        { type: "Night Flight", issued: new Date("2023-03-01"), expires: new Date("2025-12-01"), status: "Valid" }
+      ]
+    },
+    {
+      userId: 'seededUser2',
+      name: "Aisha Khan",
+      email: "aisha.khan@example.com",
+      contact: "555-0102",
+      status: "Active",
+      certifications: [
+        { type: "BVLOS", issued: new Date("2022-06-15"), expires: new Date("2024-06-14"), status: "Expired" },
+        { type: "Instructor Rating", issued: new Date("2023-08-20"), expires: new Date("2025-08-19"), status: "Valid" }
+      ]
+    },
+    {
+      userId: 'seededUser3',
+      name: "Chen Liang",
+      email: "chen.liang@example.com",
+      contact: "555-0103",
+      status: "Inactive",
+      certifications: [
+        { type: "RPL", issued: new Date("2023-05-10"), expires: new Date("2025-05-09"), status: "Valid" }
+      ]
+    }
+  ];
+
+  console.log('Seeding Pilots...');
+  for (const pilotData of pilotsToSeed) {
+    try {
+      const docRef = await db.collection('pilots').add(pilotData);
+      console.log(`Added pilot: ${pilotData.name} with ID: ${docRef.id}`);
+    } catch (error) {
+      console.error(`Error adding pilot ${pilotData.name}: `, error);
+    }
+  }
+
+  // We need to get existing pilot UIDs to link missions/flightlogs
   const pilotsSnapshot = await db.collection('pilots').get();
   const existingPilots = pilotsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-  if (existingPilots.length === 0) {
-    console.warn('No existing pilots found. Please ensure you have logged in with at least one pilot user to create a pilot profile before seeding missions/flightlogs.');
-    // Optionally create a dummy pilot if none exist for seeding purposes
-    const dummyPilotRef = await db.collection('pilots').add({
-      userId: 'dummyUserId123', // This won't link to a real user unless manually set
-      name: 'Dummy Pilot',
-      email: 'dummy@example.com',
-      contact: '123-456-7890',
-      status: 'Active',
-      certifications: [],
-    });
-    existingPilots.push({ id: dummyPilotRef.id, name: 'Dummy Pilot' });
-    console.log(`Created dummy pilot: ${dummyPilotRef.id}`);
-  }
+  // if (existingPilots.length === 0) {
+  //   console.warn('No existing pilots found. Please ensure you have logged in with at least one pilot user to create a pilot profile before seeding missions/flightlogs.');
+  //   // Optionally create a dummy pilot if none exist for seeding purposes
+  //   const dummyPilotRef = await db.collection('pilots').add({
+  //     userId: 'dummyUserId123', // This won't link to a real user unless manually set
+  //     name: 'Dummy Pilot',
+  //     email: 'dummy@example.com',
+  //     contact: '123-456-7890',
+  //     status: 'Active',
+  //     certifications: [],
+  //   });
+  //   existingPilots.push({ id: dummyPilotRef.id, name: 'Dummy Pilot' });
+  //   console.log(`Created dummy pilot: ${dummyPilotRef.id}`);
+  // }
 
   const pilot1Id = existingPilots[0]?.id;
   const drone1Id = (await db.collection('drones').limit(1).get()).docs[0]?.id;
